@@ -1,24 +1,53 @@
 import board
 import digitalio
+import displayio
+import terminalio
 import time
+import keypad
+from adafruit_display_text import label
+import adafruit_displayio_ssd1306
 
-# Define the number of rows and columns in your button matrix
+'''Display Section'''
+displayio.release_displays()
+oled_reset = board.D0
+
+i2c = board.STEMMA_I2C()
+display_bus = displayio.I2CDisplay(i2c, device_address=0x3d, reset=oled_reset)
+
+WIDTH = 128
+WIDTH = 128
+HEIGHT = 64
+BORDER = 5
+
+display = adafruit_displayio_ssd1306.SSD1306(display_bus, width=WIDTH, height=HEIGHT)
+
+# Make the display context
+splash = displayio.Group()
+display.show(splash)
+
+color_bitmap = displayio.Bitmap(WIDTH, HEIGHT, 1)
+color_palette = displayio.Palette(1)
+color_palette[0] = 0xFFFFFF  # White
+
+bg_sprite = displayio.TileGrid(color_bitmap, pixel_shader=color_palette, x=0, y=0)
+splash.append(bg_sprite)
+
+# Draw a smaller inner rectangle
+inner_bitmap = displayio.Bitmap(WIDTH - BORDER * 2, HEIGHT - BORDER * 2, 1)
+inner_palette = displayio.Palette(1)
+inner_palette[0] = 0x000000  # Black
+inner_sprite = displayio.TileGrid(
+    inner_bitmap, pixel_shader=inner_palette, x=BORDER, y=BORDER
+)
+splash.append(inner_sprite)
+
+'''Button Matrix Section'''
 num_rows = 3
 num_cols = 3
 
-binOne = digitalio.DigitalInOut(board.D6)
-binTwo = digitalio.DigitalInOut(board.D9)
-binFour = digitalio.DigitalInOut(board.D10)
+row_pins = [board.D4, board.D3, board.D2]
+col_pins = [board.D6, board. D5, board.D7]
 
-binOne.direction = digitalio.Direction.OUTPUT
-binTwo.direction = digitalio.Direction.OUTPUT
-binFour.direction = digitalio.Direction.OUTPUT
-
-# Define the pins connected to the rows and columns
-row_pins = [board.D4, board.D3, board.D2]  # Replace with your pins
-col_pins = [board.D8, board. D5, board.D7]  # Replace with your pins
-
-# Create digital input objects for rows and output objects for columns
 rows = [digitalio.DigitalInOut(pin) for pin in row_pins]
 cols = [digitalio.DigitalInOut(pin) for pin in col_pins]
 
@@ -31,7 +60,7 @@ for row in rows:
 for col in cols:
     col.direction = digitalio.Direction.OUTPUT
 
-# Define the button matrix layout (use any characters or values you like)
+# Button Matrix Layout:
 matrix = [
     [1, 2, 3],
     [4, 5, 6],
@@ -53,24 +82,41 @@ def scan_matrix():
 
     return pressed_button
 
+def display_note(key_num):
+    inner_bitmap = displayio.Bitmap(WIDTH - BORDER * 2, HEIGHT - BORDER * 2, 1)
+    inner_palette = displayio.Palette(1)
+    inner_palette[0] = 0x000000  # Black
+    inner_sprite = displayio.TileGrid(
+    inner_bitmap, pixel_shader=inner_palette, x=BORDER, y=BORDER
+    )
+    splash.append(inner_sprite)
+    if key_num == 1:
+        text = 'A'
+    if key_num == 2:
+        text = 'B'
+    if key_num == 3:
+        text = 'C'
+    if key_num == 4:
+        text = 'D'
+    if key_num == 5:
+        text = 'E'
+    if key_num == 6:
+        text = 'F'
+    if key_num == 7:
+        text = 's'
+    if key_num == 8:
+        text = 'G'
+    if key_num == 9:
+        text = 'f'
+    text_area = label.Label(
+    terminalio.FONT, text=text, color=0xFFFFFF, x=WIDTH // 2, y=HEIGHT // 2
+    )
+    splash.append(text_area)
+
 # Main loop
 while True:
     pressed = scan_matrix()
 
     if pressed:
-        print("Button Pressed:", pressed)
-
-        #LED Output, for prototyping purposes
-        binOne.value = False
-        binTwo.value = False
-        binFour.value = False
-
-        #Using bitwise operations is the most efficient approach
-        if pressed & 0b001:
-            binOne.value = True
-        if pressed & 0b010:
-            binTwo.value = True
-        if pressed & 0b100:
-            binFour.value = True
-
-    time.sleep(0.1)  # Add a small delay for stability
+        display_note(pressed)
+        time.sleep(0.5)  # Add a small delay for stability
